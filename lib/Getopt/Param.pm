@@ -4,7 +4,7 @@ use warnings;
 use strict;
 use Carp;
 
-use version; our $VERSION = qv('0.0.1');
+use version; our $VERSION = qv('0.0.2');
 
 use Locale::Maketext::Pseudo;
 use Class::Std;
@@ -40,7 +40,7 @@ use Class::Std::Utils;
                 push @{ $opts{ $ident }->{ $flag } }, defined $value ? $value : '--' . $flag;
             }
             else {
-                carp $lang{ $ident }->maketext('Argument [1] did not match [2]', $idx, $rg) if !$quiet{ $ident };
+                carp $lang{ $ident }->maketext('Argument [_1] did not match [_2]', $idx, $rg) if !$quiet{ $ident };
             }
             $idx++;
         }
@@ -117,7 +117,7 @@ Getopt::Param - param() style opt handling
 
 =head1 VERSION
 
-This document describes Getopt::Param version 0.0.1
+This document describes Getopt::Param version 0.0.2
 
 =head1 SYNOPSIS
 

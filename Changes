@@ -1,5 +1,8 @@
 Revision history for Getopt-Param
 
+0.0.2  Fri Apr  6 04:23:09 2007
+       - Maketext fixup
+       - Add 'Test::Perl::Critic' to dependency list
+
 0.0.1  Fri Feb 23 17:27:59 2007
        Initial release.
-
