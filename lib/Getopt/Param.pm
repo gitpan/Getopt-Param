@@ -4,7 +4,7 @@ use warnings;
 use strict;
 use Carp;
 
-use version; our $VERSION = qv('0.0.2');
+use version; our $VERSION = qv('0.0.3');
 
 use Locale::Maketext::Pseudo;
 use Class::Std;
@@ -117,7 +117,7 @@ Getopt::Param - param() style opt handling
 
 =head1 VERSION
 
-This document describes Getopt::Param version 0.0.2
+This document describes Getopt::Param version 0.0.3
 
 =head1 SYNOPSIS
 

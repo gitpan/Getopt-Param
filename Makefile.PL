@@ -14,7 +14,6 @@ WriteMakefile(
         'Locale::Maketext::Pseudo' => 0,
         'Class::Std'               => 0,
         'Class::Std::Utils'        => 0,
-        'Test::Perl::Critic'       => 0,
     },
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean               => { FILES => 'Getopt-Param-*' },

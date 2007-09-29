@@ -13,7 +13,6 @@ my $builder = Module::Build->new(
         'Locale::Maketext::Pseudo' => 0,
         'Class::Std'               => 0,
         'Class::Std::Utils'        => 0,
-        'Test::Perl::Critic'       => 0,
     },
     add_to_cleanup      => [ 'Getopt-Param-*' ],
 );
