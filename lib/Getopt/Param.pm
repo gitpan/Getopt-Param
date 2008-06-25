@@ -4,7 +4,7 @@ use warnings;
 use strict;
 use Carp;
 
-use version; our $VERSION = qv('0.0.3');
+use version; our $VERSION = qv('0.0.4');
 
 use Locale::Maketext::Pseudo;
 use Class::Std;
@@ -15,7 +15,8 @@ use Class::Std::Utils;
     my %opts;
     my %quiet;
     my %args_ar;
-    
+    my %help_cr;
+
     sub BUILD {
         my ($prm, $ident, $arg_ref) = @_;
         
@@ -28,11 +29,11 @@ use Class::Std::Utils;
         my @nodestruct     = @{ $args_ar };
         $args_ar{ $ident } = \@nodestruct;
 
-        # allowed/required/description hr + auto help_coderef generation ?  Getopt::Param::Config ?
-
         my $idx = 0;
+        ARG_ITEM:
         for my $arg ( @{ $args_ar{ $ident } } ) {
-
+            last ARG_ITEM if $arg eq '--';
+            
             my $rg = $arg_ref->{'strict'} ? qr{^--([^-])} : qr{^--(.)};
             
             if( $arg =~ s/$rg/$1/ ) {
@@ -45,9 +46,65 @@ use Class::Std::Utils;
             $idx++;
         }
         
-        if( $opts{ $ident }->{'help'} && $arg_ref->{'help_coderef'} ) {
-             $arg_ref->{'help_coderef'}->();
+        if ( $opts{ $ident }->{'help'} && $arg_ref->{'help_coderef'} ) {
+            $arg_ref->{'help_coderef'}->($prm);
         }
+        
+        $help_cr{$ident} = $arg_ref->{'help_coderef'} || sub { croak $lang{ $ident }->maketext(q{No '[_1]' function defined}, 'help') };
+
+        if ( !keys %{$opts{$ident}} && $arg_ref->{'no_args_help'} ) {
+            $help_cr{$ident}->($prm);
+        }
+        
+        if( ref $arg_ref->{'known_only'} eq 'ARRAY') {
+            my %lookup;
+            @lookup{ @{$arg_ref->{'known_only'}} } = ();
+            
+            my $unknown = 0;
+            for my $k (keys %{$opts{$ident}}) {
+                if (!exists $lookup{$k}) {
+                    $unknown++;
+                    # $k =~ s{\W}{?}g; # or quotemeta()
+                    carp $lang{ $ident }->maketext(q{Unknown argument '[_1]'}, quotemeta($k));
+                }
+            }
+            $help_cr{$ident}->($prm) if $unknown;
+        }
+        
+        if( ref $arg_ref->{'required'} eq 'ARRAY') {
+            
+            my $missing = 0;
+            for my $k (@{$arg_ref->{'required'}}) {
+                if (!exists $opts{$ident}->{$k}) {
+                    $missing++;
+                    # $k =~ s{\W}{?}g; # or quotemeta()
+                    carp $lang{ $ident }->maketext(q{Missing argument '[_1]'}, quotemeta($k));
+                }
+            }
+            $help_cr{$ident}->($prm) if $missing;
+        }
+        
+        if( ref $arg_ref->{'validate'} eq 'CODE') {
+            $arg_ref->{'validate'}->($prm) || $help_cr{$ident}->($prm);
+        }
+        
+        if ( ref $arg_ref->{'actions'} eq 'ARRAY' ) {
+            for my $k ($arg_ref->{'actions'}) {
+                if (exists $opts{$ident}->{$k->[0]}) {
+                    if (ref $k->[1] eq 'CODE') {
+                        $k->[1]->($prm);
+                    }
+                    else {
+                        $help_cr{$ident}->($prm);
+                    }
+                }
+            }
+        }
+    }
+
+    sub help {
+        my ($prm) = @_;
+        $help_cr{ ident $prm }->();
     }
 
     sub get_param {
@@ -117,14 +174,14 @@ Getopt::Param - param() style opt handling
 
 =head1 VERSION
 
-This document describes Getopt::Param version 0.0.3
+This document describes Getopt::Param version 0.0.4
 
 =head1 SYNOPSIS
 
     use Getopt::Param;
-    my $prm = Getopt::Param->new();
+    my $prm = Getopt::Param->new(...);
 
-    print_help_and_exit() if $prm->get_param('help'); # --help, see 'help_coderef' new() key
+    $prm->help() if $prm->get_param('number') !~ m{\A\d+\z}xms; # --help, see 'help_coderef' new() key
     
     $log->debug( "Start: $$ " . time() ) if $prm->get_param('debug'); # --debug
    
@@ -181,6 +238,8 @@ The array to get the params from, defaults to @ARGV if none is given.
 
 Note: No array's are harmed inthe making of this object.
 
+Note: An item of '--' marks the end of parameter processing like in a shell
+
 =item lang_obj
 
 A language object that can() maketext(), see "LOCALIZATION" below and L<Locale::Maketext::Pseudo>
@@ -203,7 +262,42 @@ Boolean that when true supresses the FYI about invalid options in the array.
 
 =item help_coderef
 
-This gets executed if the param 'help' exists (IE --help)
+This gets executed if the param 'help' exists (IE --help), by the help() method, and under other circumstance described in the POD.
+
+The object is passed in as its argument.
+
+=item no_args_help
+
+If this is true and no arguments are given your help_coderef is executed. If you did not specify a 'help_coderef' you'll get an error about that instead.
+
+=item known_only
+
+Array reference of all known flags, if unknown flags are passed a warning is issued and the help function is called.
+
+=item required
+
+Array reference of all required flags, if any are not passed warning is issued and the help function is called.
+
+=item validate
+
+A code reference that gets passed the object, you can do any checking you like. 
+
+A good idea is to carp about any problems and return; 
+
+Returning false will trigger help
+
+=item actions
+
+An array reference containing array references where item 0 is the flag and item 1 is a code ref to execute (or if not a code ref then help wil be done)
+
+    'actions' => [
+        ['usage', 1], # help alias
+        ['perldoc', sub {...}],
+        ['man', sub {...}],
+        ['bincheck', sub { print "Binary ok!";exit; } ],
+    ]
+
+Like help, each of these is a passed the object.
 
 =begin comment
 
@@ -329,6 +423,10 @@ Returns true if there was a param of that "name" passed
 
 Returns a serializable hashref of the param's and their values (in array refs)
 
+=item help()
+
+Executes the object's help coderef. If you did not specify a 'help_coderef' you'll get an error about that instead.
+
 =back
 
 =head1 DIAGNOSTICS
@@ -345,6 +443,17 @@ The regex is based on your 'strict' key value [not ]passed to new() .
 
 This can be supressed by passing new() 'quiet' => 1
 
+=item C<< No '%s' function defined >>
+
+Something has triggered a coderef as per your new() args but the given coderef was not defined in new.
+
+=item C<< Unknown argument '%s' >>
+
+'known_only' was set and an argument that was not in that list was passed.
+
+=item C<< Missing argument '%s' >>
+
+'required' was set and one or more of those flags were not passed.
 
 =back
 
@@ -382,6 +491,8 @@ C<bug-getopt-param@rt.cpan.org>, or through the web interface at
 L<http://rt.cpan.org>.
 
 =head1 TODO
+
+- (This was a comment in BUILD()'s code) allowed/required/description hr + auto help_coderef generation ?  Getopt::Param::Config ?
 
 - Short option (-u user instead of --user=user) support
 

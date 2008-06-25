@@ -1,4 +1,4 @@
-use Test::More tests => 29;
+use Test::More tests => 41;
 
 BEGIN {
 use_ok( 'Getopt::Param' );
@@ -116,4 +116,42 @@ my $prm = 2;
     for my $key ( sort keys %val ){
         ok($inc->param($key) eq $val{ $key }, "proper value: $key" . $tst{ $prm });
     }   
+}
+
+{
+    my $hlp_cnt = 0;
+    my $prm = Getopt::Param->new({'no_args_help' => 1, 'help_coderef' => sub {$hlp_cnt++; }, 'array_ref' => [] });
+    ok($hlp_cnt == 1, 'no args triggers help when no_args_help is true');
+    $prm->help();
+    ok($hlp_cnt == 2, 'help method');
+    
+    my $par = Getopt::Param->new({'array_ref' => [qw(--before -- --after)]});
+    ok($par->exists_param('before') eq '1', 'before --');
+    ok(!$par->exists_param('after'), 'after --');
+    
+    my $only = Getopt::Param->new({'array_ref' => ['--bar'], 'help_coderef' => sub {$hlp_cnt++; }, 'known_only' => ['foo'] });
+    ok($hlp_cnt == 3, 'known only constraint bad (see warning output)');
+
+    my $only_b = Getopt::Param->new({'array_ref' => ['--foo'], 'help_coderef' => sub {$hlp_cnt++; }, 'known_only' => ['foo'] });
+    ok($hlp_cnt == 3, 'known only constraint ok');
+    
+    my $req = Getopt::Param->new({'array_ref' => ['--bar'], 'help_coderef' => sub {$hlp_cnt++; }, 'required' => ['foo'] });
+    ok($hlp_cnt == 4, 'required constraint (see warning output)');
+
+    my $req_b = Getopt::Param->new({'array_ref' => ['--foo'], 'help_coderef' => sub {$hlp_cnt++; }, 'required' => ['foo'] });
+    ok($hlp_cnt == 4, 'required constraint ok');
+
+    my $val = Getopt::Param->new({'array_ref' => ['--fail'], 'help_coderef' => sub {$hlp_cnt++; }, 'validate' => sub {my ($prm)=@_;if ($prm->get_param('fail')) {$hlp_cnt++;return;}return 1;} });
+# we do 6 instead of 5 since validate and help are incrementing it...
+    ok($hlp_cnt == 6, 'validate constraint fail');
+    
+    my $val_b = Getopt::Param->new({'array_ref' => ['--foo'], 'validate' => sub {my ($prm)=@_;if ($prm->get_param('fail')) {$hlp_cnt++;return;}return 1;} });
+    ok($hlp_cnt == 6, 'validate constraint ok');
+
+    my $act = Getopt::Param->new({'array_ref' => ['--usage'], 'help_coderef' => sub {$hlp_cnt++; }, 'actions' => ['usage', 1] });
+    ok($hlp_cnt == 7, 'actions defauklt to help');
+
+    my $act_b = Getopt::Param->new({'array_ref' => ['--usage'], 'help_coderef' => sub {$hlp_cnt++; }, 'actions' => ['usage', sub { $hlp_cnt += 2 }] });
+    ok($hlp_cnt == 9, 'actions defauklt to help');
+
 }
