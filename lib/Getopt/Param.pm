@@ -4,7 +4,7 @@ use warnings;
 use strict;
 use Carp;
 
-use version; our $VERSION = qv('0.0.4');
+use version; our $VERSION = qv('0.0.5');
 
 use Locale::Maketext::Pseudo;
 use Class::Std;
@@ -109,6 +109,7 @@ use Class::Std::Utils;
 
     sub get_param {
         my ($prm, $name) = @_;
+        return if !exists $opts{ ident $prm }->{ $name }; # do not auto vivify it
         $opts{ ident $prm }->{ $name } = [] if ref $opts{ ident $prm }->{ $name } ne 'ARRAY';
         return wantarray ? @{ $opts{ ident $prm }->{ $name } } 
                          : $opts{ ident $prm }->{ $name }->[0];
@@ -174,7 +175,7 @@ Getopt::Param - param() style opt handling
 
 =head1 VERSION
 
-This document describes Getopt::Param version 0.0.4
+This document describes Getopt::Param version 0.0.5
 
 =head1 SYNOPSIS
 

@@ -1,5 +1,8 @@
 Revision history for Getopt-Param
 
+0.0.5  Wed Jun 25 23:44:17 2008
+    - Do not auto vivify option in object
+    
 0.0.4  Tue Jun 24 22:50:04 2008
     - Added 'no_args_help' key
     - Added 'known_only' key

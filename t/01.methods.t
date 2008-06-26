@@ -1,4 +1,4 @@
-use Test::More tests => 41;
+use Test::More tests => 44;
 
 BEGIN {
 use_ok( 'Getopt::Param' );
@@ -116,6 +116,18 @@ my $prm = 2;
     for my $key ( sort keys %val ){
         ok($inc->param($key) eq $val{ $key }, "proper value: $key" . $tst{ $prm });
     }   
+    
+    my $hr = $inc->get_param_hashref();
+    ok(!exists $hr->{'ferdiddle'}, 'pre autoviv test check');
+    if ( $inc->get_param('ferdiddle') ) {
+        # ferdiddle it
+    }
+    my $hr_b = $inc->get_param_hashref();
+    ok(!exists $hr_b->{'ferdiddle'}, 'post autoviv test check');
+    $inc->set_param('ferdiddle', 42);
+    
+    my $hr_c = $inc->get_param_hashref();
+    ok(exists $hr_c->{'ferdiddle'} && $hr_c->{'ferdiddle'}[0] == 42, 'autoviv test correct key sanity')
 }
 
 {
